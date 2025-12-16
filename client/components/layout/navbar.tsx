@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { LogOut, Box, Truck, BarChart3 } from "lucide-react"
+import { LogOut, Truck, BarChart3, PanelsTopLeft, Warehouse } from "lucide-react"
 
 export function Navbar() {
   const router = useRouter()
@@ -35,13 +35,13 @@ export function Navbar() {
               Dashboard
             </Link>
             <Link
-              href="/containers"
+              href="/board"
               className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                isActive("/containers") ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                isActive("/board") ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Box className="h-4 w-4" />
-              Containers
+              <PanelsTopLeft className="h-4 w-4" />
+              Transit Board
             </Link>
             <Link
               href="/drivers"
@@ -60,6 +60,15 @@ export function Navbar() {
             >
               <Truck className="h-4 w-4" />
               Chassis
+            </Link>
+            <Link
+              href="/yards"
+              className={`flex items-center gap-2 text-sm font-medium transition-colors ${
+                isActive("/yards") ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Warehouse className="h-4 w-4" />
+              Yards
             </Link>
           </div>
         </div>

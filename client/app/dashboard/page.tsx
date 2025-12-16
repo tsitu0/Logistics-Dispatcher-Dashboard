@@ -27,18 +27,20 @@ export default function DashboardPage() {
     setIsCheckingAuth(false)
   }, [router])
 
-  const { containers, isLoading, error, deleteContainer, updateContainer } = useContainers()
+  const { containers, isLoading, error, moveContainerStatus, updateContainer } = useContainers()
   const { drivers } = useDrivers()
   const { chassis } = useChassis()
 
   const [searchId, setSearchId] = useState("")
   const [selectedContainerForAssignment, setSelectedContainerForAssignment] = useState<Container | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
   const [isAssigning, setIsAssigning] = useState(false)
   const [assignmentError, setAssignmentError] = useState("")
 
   const filteredContainers = useMemo(() => {
-    const containerList = Array.isArray(containers) ? containers : []
+    const containerList = Array.isArray(containers)
+      ? containers.filter((container) => (container.status || "AT_TERMINAL") === "AT_TERMINAL")
+      : []
 
     if (!searchId.trim()) {
       return containerList
@@ -49,12 +51,12 @@ export default function DashboardPage() {
     })
   }, [containers, searchId])
 
-  const handleDelete = async (id: string) => {
-    setIsDeleting(true)
+  const handleSendToTransit = async (id: string) => {
+    setIsMoving(true)
     try {
-      await deleteContainer(id)
+      await moveContainerStatus(id, "IN_TRANSIT_FROM_TERMINAL")
     } finally {
-      setIsDeleting(false)
+      setIsMoving(false)
     }
   }
 
@@ -102,10 +104,15 @@ export default function DashboardPage() {
       <div className="max-w-screen-2xl mx-auto px-6 py-10">
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-4xl font-bold">Dispatcher Dashboard</h1>
-          <Button onClick={() => router.push("/containers/new")} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Container
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => router.push("/containers/import")} className="bg-transparent">
+              Import XLSX
+            </Button>
+            <Button onClick={() => router.push("/containers/new")} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Container
+            </Button>
+          </div>
         </div>
 
         <SearchAndFilters searchId={searchId} onSearchIdChange={setSearchId} onReset={handleReset} />
@@ -114,9 +121,9 @@ export default function DashboardPage() {
           containers={filteredContainers}
           isLoading={isLoading}
           error={error}
-          onDelete={handleDelete}
+          onSendToTransit={handleSendToTransit}
           onAssign={handleAssign}
-          isDeleting={isDeleting}
+          isMoving={isMoving}
         />
 
         <AssignmentModal

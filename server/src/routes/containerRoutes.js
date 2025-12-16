@@ -5,6 +5,7 @@ const {
   getContainerById,
   createContainer,
   updateContainer,
+  updateContainerStatus,
   deleteContainer,
   importContainers
 } = require('../controllers/containerController');
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.get('/', getContainers);
 router.post('/import', upload.single('file'), importContainers);
+router.put('/:id/status', updateContainerStatus);
 router.get('/:id', getContainerById);
 router.post('/', createContainer);
 router.put('/:id', updateContainer);

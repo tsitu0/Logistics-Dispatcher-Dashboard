@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { Navbar } from "@/components/layout/navbar"
 import { ContainerForm } from "@/components/containers/container-form"
@@ -10,6 +10,9 @@ import { Loader2 } from "lucide-react"
 export default function EditContainerPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams.get("from")
+  const backTarget = from === "board" ? "/board" : "/dashboard"
   const { containers, isLoading: isFetching, updateContainer } = useContainers()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -21,7 +24,7 @@ export default function EditContainerPage() {
     setError("")
     try {
       await updateContainer(params.id as string, data)
-      router.push(`/containers/${params.id}`)
+      router.push(backTarget)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update container")
     } finally {

@@ -1,6 +1,30 @@
 const xlsx = require('xlsx');
 const Container = require('../models/Container');
 
+const DEFAULT_STATUS = 'AT_TERMINAL';
+const STATUS_VALUES = Container.STATUSES || [
+  'AT_TERMINAL',
+  'IN_TRANSIT_FROM_TERMINAL',
+  'AT_CUSTOMER_YARD',
+  'AT_OTHER_YARD',
+  'EMPTY_AT_CUSTOMER',
+  'RETURNING_TO_TERMINAL',
+  'RETURNED'
+];
+
+const getTopOrderIndexForStage = async (status, yardId) => {
+  const query = { status };
+  if (status === 'AT_OTHER_YARD') {
+    query.yardId = yardId || null;
+  }
+
+  const top = await Container.findOne(query).sort({ orderIndex: 1 }).lean();
+  if (!top || typeof top.orderIndex !== 'number') {
+    return 0;
+  }
+  return top.orderIndex - 1;
+};
+
 const normalizeHeader = (header) => {
   return header
     .toString()
@@ -74,6 +98,7 @@ const getContainers = async (_req, res) => {
           _sortOrder: {
             $ifNull: ['$orderIndex', Number.MAX_SAFE_INTEGER]
           },
+          status: { $ifNull: ['$status', DEFAULT_STATUS] },
           id: { $toString: '$_id' }
         }
       },
@@ -96,7 +121,10 @@ const getContainerById = async (req, res) => {
       return res.status(404).json({ error: 'Container not found' });
     }
 
-    return res.status(200).json({ data: container, message: 'Success' });
+    const jsonContainer = container.toJSON();
+    jsonContainer.status = jsonContainer.status || DEFAULT_STATUS;
+
+    return res.status(200).json({ data: jsonContainer, message: 'Success' });
   } catch (err) {
     console.error('Error fetching container:', err);
     return res.status(500).json({ error: 'Failed to fetch container' });
@@ -105,15 +133,31 @@ const getContainerById = async (req, res) => {
 
 const createContainer = async (req, res) => {
   try {
-    const { caseNumber, ...rest } = req.body;
+    const { caseNumber, status, yardStatus, ...rest } = req.body;
     const trimmedCaseNumber = (caseNumber || '').toString().trim();
 
     if (!trimmedCaseNumber) {
       return res.status(400).json({ error: 'caseNumber is required' });
     }
 
+    if (status && !STATUS_VALUES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    if (status === 'AT_OTHER_YARD') {
+      if (!rest.yardId) {
+        return res.status(400).json({ error: 'yardId is required when status is AT_OTHER_YARD' });
+      }
+      if (!yardStatus || !['LOADED', 'EMPTY'].includes(yardStatus)) {
+        return res.status(400).json({ error: 'yardStatus must be LOADED or EMPTY when status is AT_OTHER_YARD' });
+      }
+    }
+
     const newContainer = await Container.create({
       caseNumber: trimmedCaseNumber,
+      status: status || DEFAULT_STATUS,
+      yardStatus: status === 'AT_OTHER_YARD' ? yardStatus : null,
+      yardId: status === 'AT_OTHER_YARD' ? rest.yardId : null,
       ...rest
     });
 
@@ -137,7 +181,28 @@ const updateContainer = async (req, res) => {
       updates.caseNumber = trimmedCaseNumber;
     }
 
-    const updated = await Container.findByIdAndUpdate(id, updates, { new: true });
+    if (Object.prototype.hasOwnProperty.call(updates, 'status')) {
+      if (!STATUS_VALUES.includes(updates.status)) {
+        return res.status(400).json({ error: 'Invalid status value' });
+      }
+      if (updates.status === 'AT_OTHER_YARD') {
+        if (!updates.yardId) {
+          return res.status(400).json({ error: 'yardId is required when status is AT_OTHER_YARD' });
+        }
+        if (!updates.yardStatus || !['LOADED', 'EMPTY'].includes(updates.yardStatus)) {
+          return res.status(400).json({ error: 'yardStatus must be LOADED or EMPTY when status is AT_OTHER_YARD' });
+        }
+      }
+      if (!Object.prototype.hasOwnProperty.call(updates, 'orderIndex')) {
+        updates.orderIndex = await getTopOrderIndexForStage(updates.status, updates.yardId);
+      }
+      if (updates.status !== 'AT_OTHER_YARD') {
+        updates.yardId = null;
+        updates.yardStatus = null;
+      }
+    }
+
+    const updated = await Container.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 
     if (!updated) {
       return res.status(404).json({ error: 'Container not found' });
@@ -147,6 +212,55 @@ const updateContainer = async (req, res) => {
   } catch (err) {
     console.error('Error updating container:', err);
     return res.status(500).json({ error: 'Failed to update container' });
+  }
+};
+
+const updateContainerStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, yardId = null, yardStatus = null, orderIndex } = req.body || {};
+
+    if (!status) {
+      return res.status(400).json({ error: 'status is required' });
+    }
+
+    if (!STATUS_VALUES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    if (status === 'AT_OTHER_YARD') {
+      if (!yardId) {
+        return res.status(400).json({ error: 'yardId is required when status is AT_OTHER_YARD' });
+      }
+      if (!yardStatus || !['LOADED', 'EMPTY'].includes(yardStatus)) {
+        return res.status(400).json({ error: 'yardStatus must be LOADED or EMPTY when status is AT_OTHER_YARD' });
+      }
+    }
+
+    const resolvedOrderIndex =
+      typeof orderIndex === 'number' && Number.isFinite(orderIndex)
+        ? orderIndex
+        : await getTopOrderIndexForStage(status, yardId);
+
+    const updated = await Container.findByIdAndUpdate(
+      id,
+      {
+        status,
+        yardId: status === 'AT_OTHER_YARD' ? yardId : null,
+        yardStatus: status === 'AT_OTHER_YARD' ? yardStatus : null,
+        orderIndex: resolvedOrderIndex
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Container not found' });
+    }
+
+    return res.status(200).json({ data: updated, message: 'Container status updated' });
+  } catch (err) {
+    console.error('Error updating container status:', err);
+    return res.status(500).json({ error: 'Failed to update container status' });
   }
 };
 
@@ -202,11 +316,17 @@ const importContainers = async (req, res) => {
 
       mapped.orderIndex = idx;
 
+      const setOnInsert = {
+        status: DEFAULT_STATUS,
+        yardStatus: null
+      };
+
       operations.push({
         updateOne: {
           filter: { caseNumber: mapped.caseNumber },
-          update: { $set: mapped },
-          upsert: true
+          update: { $set: mapped, $setOnInsert: setOnInsert },
+          upsert: true,
+          setDefaultsOnInsert: true
         }
       });
     });
@@ -244,6 +364,7 @@ module.exports = {
   getContainerById,
   createContainer,
   updateContainer,
+  updateContainerStatus,
   deleteContainer,
   importContainers
 };

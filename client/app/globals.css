@@ -122,3 +122,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide scrollbars where we still want scroll behavior */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}

@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const containerRoutes = require('./routes/containerRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const chassisRoutes = require('./routes/chassisRoutes');
+const yardRoutes = require('./routes/yardRoutes');
 
 const envPath = fs.existsSync(path.join(__dirname, '..', '.env'))
   ? path.join(__dirname, '..', '.env')
@@ -30,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/containers', containerRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/chassis', chassisRoutes);
+app.use('/api/yards', yardRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 

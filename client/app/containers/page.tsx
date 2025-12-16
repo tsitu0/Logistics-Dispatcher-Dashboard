@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/layout/navbar"
 import { ContainerTable } from "@/components/containers/container-table"
@@ -10,15 +10,20 @@ import { Plus } from "lucide-react"
 
 export default function ContainersPage() {
   const router = useRouter()
-  const { containers, isLoading, error, deleteContainer } = useContainers()
-  const [isDeleting, setIsDeleting] = useState(false)
+  const { containers, isLoading, error, moveContainerStatus } = useContainers()
+  const [isMoving, setIsMoving] = useState(false)
 
-  const handleDelete = async (id: string) => {
-    setIsDeleting(true)
+  const terminalContainers = useMemo(
+    () => (Array.isArray(containers) ? containers.filter((c) => (c.status || "AT_TERMINAL") === "AT_TERMINAL") : []),
+    [containers],
+  )
+
+  const handleSendToTransit = async (id: string) => {
+    setIsMoving(true)
     try {
-      await deleteContainer(id)
+      await moveContainerStatus(id, "IN_TRANSIT_FROM_TERMINAL")
     } finally {
-      setIsDeleting(false)
+      setIsMoving(false)
     }
   }
 
@@ -29,6 +34,9 @@ export default function ContainersPage() {
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-4xl font-bold">Container Management</h1>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => router.push("/board")} className="bg-transparent">
+              Board View
+            </Button>
             <Button variant="outline" onClick={() => router.push("/containers/import")} className="bg-transparent">
               Import XLSX
             </Button>
@@ -39,11 +47,11 @@ export default function ContainersPage() {
           </div>
         </div>
         <ContainerTable
-          containers={containers}
+          containers={terminalContainers}
           isLoading={isLoading}
           error={error}
-          onDelete={handleDelete}
-          isDeleting={isDeleting}
+          onSendToTransit={handleSendToTransit}
+          isMoving={isMoving}
         />
       </div>
     </div>

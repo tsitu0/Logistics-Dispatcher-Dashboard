@@ -1,6 +1,13 @@
 {
+  "/board/page": "app/board/page.js",
+  "/chassis/page": "app/chassis/page.js",
+  "/containers/[id]/edit/page": "app/containers/[id]/edit/page.js",
   "/containers/[id]/page": "app/containers/[id]/page.js",
+  "/containers/import/page": "app/containers/import/page.js",
   "/containers/page": "app/containers/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/page": "app/page.js"
+  "/drivers/page": "app/drivers/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/yards/page": "app/yards/page.js"
 }

@@ -3,26 +3,22 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Loader2, Edit, Trash2, Eye } from "lucide-react"
+import { AlertCircle, Loader2, Edit, Eye, MoveRight } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CONTAINER_STATUSES } from "@/lib/constants/container-status"
 import type { Container } from "@/lib/hooks/use-containers"
 
 interface ContainerTableProps {
   containers: Container[]
   isLoading: boolean
   error: string | null
-  onDelete: (id: string) => Promise<void>
-  isDeleting?: boolean
+  onSendToTransit: (id: string) => Promise<void>
+  isMoving?: boolean
 }
 
-const statusColors: Record<string, string> = {
-  Available: "bg-green-100 text-green-800",
-  "At Terminal": "bg-blue-100 text-blue-800",
-  "Out for Delivery": "bg-yellow-100 text-yellow-800",
-  Delivered: "bg-gray-100 text-gray-800",
-}
+const STATUS_LABELS = Object.fromEntries(CONTAINER_STATUSES.map((s) => [s.id, s.label]))
 
-export function ContainerTable({ containers, isLoading, error, onDelete, isDeleting = false }: ContainerTableProps) {
+export function ContainerTable({ containers, isLoading, error, onSendToTransit, isMoving = false }: ContainerTableProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -67,6 +63,7 @@ export function ContainerTable({ containers, isLoading, error, onDelete, isDelet
                   <th className="text-left py-2.5 px-3 font-semibold">PU DRIVER</th>
                   <th className="text-left py-2.5 px-3 font-semibold">Delivery Address & Company</th>
                   <th className="text-left py-2.5 px-3 font-semibold">Billing Party</th>
+                  <th className="text-left py-2.5 px-3 font-semibold">Status</th>
                   <th className="text-left py-2.5 px-3 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -97,9 +94,12 @@ export function ContainerTable({ containers, isLoading, error, onDelete, isDelet
                       {container.deliveryAddressCompany || "-"}
                     </td>
                     <td className="py-2.5 px-3 text-xs">{container.billingParty || "-"}</td>
+                    <td className="py-2.5 px-3 text-xs font-semibold">
+                      {STATUS_LABELS[container.status || "AT_TERMINAL"] || container.status || "At Terminal"}
+                    </td>
                     <td className="py-2.5 px-3">
                       <div className="flex gap-2">
-                        <Link href={`/containers/${container.id}`}>
+                        <Link href={`/containers/${container.id}?from=dashboard`}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -112,15 +112,12 @@ export function ContainerTable({ containers, isLoading, error, onDelete, isDelet
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (confirm("Are you sure?")) {
-                              onDelete(container.id)
-                            }
-                          }}
-                          disabled={isDeleting}
+                          className="h-8 w-auto px-2"
+                          onClick={() => onSendToTransit(container.id)}
+                          disabled={isMoving}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <MoveRight className="h-4 w-4 mr-1" />
+                          Send to Transit
                         </Button>
                       </div>
                     </td>

@@ -7,6 +7,11 @@ export interface Container {
   id: string
   containerNumber: string
   caseNumber?: string
+  status?: string
+  yardId?: string | null
+  yardStatus?: "LOADED" | "EMPTY" | null
+  orderIndex?: number
+  createdAt?: string
   mblNumber?: string
   size?: string
   terminal?: string
@@ -27,6 +32,14 @@ export interface Container {
   chassisId?: string
 }
 
+const normalizeContainer = (item: Container): Container => ({
+  ...item,
+  status: item.status || "AT_TERMINAL",
+  yardId: item.yardId ?? null,
+  yardStatus: (item as any).yardStatus ?? null,
+  orderIndex: typeof item.orderIndex === "number" ? item.orderIndex : Number.MAX_SAFE_INTEGER,
+})
+
 export function useContainers() {
   const [containers, setContainers] = useState<Container[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -38,7 +51,8 @@ export function useContainers() {
     setError(null)
     try {
       const data = await apiClient.get<Container[]>("/containers")
-      setContainers(Array.isArray(data) ? data : [])
+      const normalized = (Array.isArray(data) ? data : []).map((item) => normalizeContainer(item))
+      setContainers(normalized)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch containers")
       setContainers([])
@@ -55,8 +69,9 @@ export function useContainers() {
     async (container: Omit<Container, "id">) => {
       try {
         const newContainer = await apiClient.post<Container>("/containers", container)
-        setContainers([...containers, newContainer])
-        return newContainer
+        const normalized = normalizeContainer(newContainer)
+        setContainers([...containers, normalized])
+        return normalized
       } catch (err) {
         throw err instanceof Error ? err : new Error("Failed to create container")
       }
@@ -68,8 +83,9 @@ export function useContainers() {
     async (id: string, container: Partial<Container>) => {
       try {
         const updated = await apiClient.put<Container>(`/containers/${id}`, container)
-        setContainers(containers.map((c) => (c.id === id ? updated : c)))
-        return updated
+        const normalized = normalizeContainer(updated)
+        setContainers(containers.map((c) => (c.id === id ? normalized : c)))
+        return normalized
       } catch (err) {
         throw err instanceof Error ? err : new Error("Failed to update container")
       }
@@ -84,6 +100,31 @@ export function useContainers() {
         setContainers(containers.filter((c) => c.id !== id))
       } catch (err) {
         throw err instanceof Error ? err : new Error("Failed to delete container")
+      }
+    },
+    [containers],
+  )
+
+  const moveContainerStatus = useCallback(
+    async (id: string, status: string, options?: { yardId?: string | null; yardStatus?: "LOADED" | "EMPTY" | null; orderIndex?: number }) => {
+      try {
+        const payload: { status: string; yardId?: string | null; yardStatus?: "LOADED" | "EMPTY" | null; orderIndex?: number } = { status }
+        if (options?.yardId !== undefined) {
+          payload.yardId = options.yardId
+        }
+        if (options?.yardStatus !== undefined) {
+          payload.yardStatus = options.yardStatus
+        }
+        if (typeof options?.orderIndex === "number") {
+          payload.orderIndex = options.orderIndex
+        }
+
+        const updated = await apiClient.put<Container>(`/containers/${id}/status`, payload)
+        const normalized = normalizeContainer(updated)
+        setContainers(containers.map((c) => (c.id === id ? normalized : c)))
+        return normalized
+      } catch (err) {
+        throw err instanceof Error ? err : new Error("Failed to move container")
       }
     },
     [containers],
@@ -119,6 +160,7 @@ export function useContainers() {
     fetchContainers,
     createContainer,
     updateContainer,
+    moveContainerStatus,
     deleteContainer,
     importFromFile,
     isImporting,

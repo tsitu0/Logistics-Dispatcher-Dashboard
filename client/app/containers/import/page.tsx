@@ -48,8 +48,8 @@ export default function ImportContainersPage() {
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold">Import Containers</h1>
-          <Button variant="outline" onClick={() => router.push("/containers")} className="bg-transparent">
-            Back to Containers
+          <Button variant="outline" onClick={() => router.push("/dashboard")} className="bg-transparent">
+            Back to Dashboard
           </Button>
         </div>
 

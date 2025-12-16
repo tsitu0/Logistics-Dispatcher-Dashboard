@@ -39,14 +39,17 @@ Frontend expects the API at `http://localhost:8080/api` by default.
 - Containers: create/edit/delete, optional Container #, required Case Number, assignment to driver/chassis.
 - XLSX import: `POST /api/containers/import` with `file` field; preserves sheet row order via `orderIndex` and upserts by `caseNumber`.
 - Drivers & Chassis: simple CRUD.
+- Yards: CRUD plus board grouping for “Other Yard” containers (loaded vs empty).
 - Auth placeholder: `/api/auth/login` stub; UI uses localStorage session.
 - Mock mode: set `NEXT_PUBLIC_USE_MOCK_DATA=true` to demo UI without backend.
+- Status workflow: containers start in `AT_TERMINAL`, can be sent to `IN_TRANSIT_FROM_TERMINAL` (instead of delete) and managed on a drag-and-drop board through `AT_CUSTOMER_YARD`, `AT_OTHER_YARD`, `EMPTY_AT_CUSTOMER`, and `RETURNING_TO_TERMINAL`.
 
 ## API (summary)
 - Health: `GET /api/health`
 - Containers: `GET/POST/PUT/DELETE /api/containers`, `POST /api/containers/import`
 - Drivers: `GET/POST /api/drivers`
 - Chassis: `GET/POST /api/chassis`
+- Yards: `GET/POST/PUT/DELETE /api/yards`
 - Auth stub: `POST /api/auth/login`
 
 ## Scripts

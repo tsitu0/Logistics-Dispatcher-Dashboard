@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Navbar } from "@/components/layout/navbar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,8 +10,12 @@ import { useContainers } from "@/lib/hooks/use-containers"
 export default function ContainerDetailsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const from = searchParams.get("from")
   const { containers, isLoading } = useContainers()
   const container = containers.find((c) => c.id === params.id)
+
+  const backTarget = from === "board" ? "/board" : "/dashboard"
 
   if (isLoading) {
     return (
@@ -31,7 +35,7 @@ export default function ContainerDetailsPage() {
         <div className="max-w-2xl mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold mb-4">Container Not Found</h2>
-            <Button onClick={() => router.push("/containers")}>Back to Containers</Button>
+            <Button onClick={() => router.push(backTarget)}>Back</Button>
           </div>
         </div>
       </div>
@@ -42,9 +46,9 @@ export default function ContainerDetailsPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-4xl mx-auto px-6 py-10">
-        <Button variant="ghost" onClick={() => router.push("/containers")} className="mb-8">
+        <Button variant="ghost" onClick={() => router.push(backTarget)} className="mb-8">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Containers
+          Back
         </Button>
 
         <Card>
@@ -72,6 +76,10 @@ export default function ContainerDetailsPage() {
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">MBL Number</h3>
                 <p className="text-lg font-mono">{container.mblNumber || "-"}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
+                <p className="text-lg font-mono">{container.status || "AT_TERMINAL"}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Chassis</h3>
@@ -118,6 +126,10 @@ export default function ContainerDetailsPage() {
                 <p className="text-lg">{container.yards || "-"}</p>
               </div>
               <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Yard Status</h3>
+                <p className="text-lg">{container.yardStatus || "-"}</p>
+              </div>
+              <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">PU DRIVER</h3>
                 <p className="text-lg">{container.puDriver || "-"}</p>
               </div>
@@ -136,8 +148,8 @@ export default function ContainerDetailsPage() {
 
             <div className="flex gap-3 pt-4">
               <Button onClick={() => router.push(`/containers/${container.id}/edit`)}>Edit Container</Button>
-              <Button variant="outline" onClick={() => router.push("/containers")}>
-                Back to List
+              <Button variant="outline" onClick={() => router.push(backTarget)}>
+                Back
               </Button>
             </div>
           </CardContent>
