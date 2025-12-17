@@ -1,6 +1,6 @@
 # Dispatcher Operations System
 
-Full-stack logistics dashboard with a Next.js frontend and an Express + MongoDB backend. Manage containers, drivers, chassis, and import containers from XLSX.
+Full-stack Dispatcher System with a Next.js frontend and an Express + MongoDB backend. Manage containers, drivers, chassis, and import containers from XLSX.
 
 ## Stack
 - Frontend: Next.js (App Router), TypeScript, Tailwind/shadcn UI.
